@@ -1,0 +1,10 @@
+[Unit]
+Description=Super MeowBackup
+
+[Service]
+User=backup
+Type=oneshot
+ExecStart=/usr/local/bin/db_backup.sh
+
+[Install]
+WantedBy=multi-user.target
