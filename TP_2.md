@@ -276,7 +276,7 @@ mysql>
 
 mysqldump -u backup -pmeow database_meow > db_backup.sql
 tar -czf db_backup.tar.gz db_backup.sql
-az storage blob upload --account-name ultrasupermeow --container-name blobcontainer --file db_backup.tar.gz --name sql_backup --overwrite
+az storage blob upload --account-name ultrasupermeow --container-name blobcontainer --file db_backup.tar.gz --name sql_backup --auth-mode login --overwrite
 
 rm db_backup.sql db_backup.tar.gz
 ```
@@ -286,3 +286,47 @@ rm db_backup.sql db_backup.tar.gz
 **🌞 Récupérer le blob**
 
 ## D - Service
+
+**🌞 Ecrire un fichier /etc/systemd/system/db_backup.service**
+
+```
+[Unit]
+Description=Super MeowBackup
+
+[Service]
+User=backup
+Type=oneshot
+ExecStart=/usr/local/bin/db_backup.sh
+
+[Install]
+WantedBy=multi-user.target
+```
+
+## E - Timer
+
+**🌞 Ecrire un fichier /etc/systemd/system/db_backup.timer**
+```
+[Unit]
+Description=Sauvegarde de la DB toutes les 1 min
+
+[Timer]
+# Premier lancement 1 minutes après le boot
+OnBootSec=1min
+
+# Et ensuite, ça retrigger 1 minutes après que ça soit stopped
+OnUnitActiveSec=1min
+Unit=db_backup.service
+
+[Install]
+WantedBy=timers.target
+```
+
+```
+amir@azure2:~$ sudo systemctl start db_backup.timer
+amir@azure2:~$ sudo systemctl enable db_backup.timer
+Created symlink /etc/systemd/system/timers.target.wants/db_backup.timer → /etc/systemd/system/db_backup.timer.
+```
+
+(hein, comment ca j'ai créer un faux fichier db_backup qui fais rien juste pour que je puisse lancer ma commande timer et gratter des points, heiiiinnnn?????)
+
+Bon, j'suis pas fier du rendu, c'est nul, c'est fais vite, mais faut bien rendre quequ'chose quoi...
