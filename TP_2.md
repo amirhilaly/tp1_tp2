@@ -61,8 +61,127 @@ user2@azurePUTAIN:~$ ls -al /var/log/cloud-init*
 
 **🌞 Utilisez cloud-init pour préconfigurer une VM comme azure2.tp2 :**
 
+```
+[amir@bomboclat ~]$ cat cloud-init.txt 
+#cloud-config
+users:
+  - default
+  - name: amir
+    passwd: $6$IMUzQKxah/2AHPT9$yN2mOgYszhlQucdudKXKzEBVkfqj1rGOWe9BdKiyubiPG5Q9Czu6TyATypHSVE85z7Jet4MhkujLM7wJKz7Xh/
+    sudo: true
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIFV1GoB8kW4wcgCn17FPi4kVibHrxr3apmaYxfp+9xI amir@bomboclat
+
+package_update: true
+packages:
+ - mysql-server
+
+write_files:
+  - owner: root:root
+    path: /root
+    defer: true
+    content: |
+      CREATE DATABASE meow_database;
+      CREATE USER 'meow'@'%' IDENTIFIED BY 'meow';
+      ALTER USER 'meow' IDENTIFIED BY 'meow';
+      GRANT ALL ON meow_database.* TO 'meow'@'%';
+      FLUSH PRIVILEGES;
+
+runcmd:
+  - systemctl start mysql
+  - until mysqladmin ping --silent; do sleep 1; done
+  - mysql -u root < /root/init.sql
+  - systemctl restart mysql
+```
 
 **🌞 Testez que ça fonctionne**
+
+```
+[amir@bomboclat ~]$ az vm create --name azurePUTAIN --resource-group SuperVMGroup --size Standard_B1s --image Ubuntu2404 --custom-data cloud-init.txt --ssh-key-values .ssh/cloud_tp.pub
+The default value of '--size' will be changed to 'Standard_D2s_v5' from 'Standard_DS1_v2' in a future release.
+Selecting "northeurope" may reduce your costs. The region you've selected may cost more for the same services. You can disable this message in the future with the command "az config set core.display_region_identified=false". Learn more at https://go.microsoft.com/fwlink/?linkid=222571 
+
+{
+  "fqdns": "",
+  "id": "/subscriptions/90e6ab35-a4f8-4e6a-bb3f-d5fe0549d3f9/resourceGroups/SuperVMGroup/providers/Microsoft.Compute/virtualMachines/azurePUTAIN",
+  "location": "francecentral",
+  "macAddress": "x",
+  "powerState": "VM running",
+  "privateIpAddress": "10.0.0.6",
+  "publicIpAddress": "x",
+  "resourceGroup": "SuperVMGroup"
+}
+[amir@bomboclat ~]$ ssh amir@4.211.250.3
+The authenticity of host '4.211.250.3 (4.211.250.3)' can't be established.
+ED25519 key fingerprint is: SHA256:DuidgmUpOH42MB4lejxQQi64MMeb1eDj4zdRO62pLcI
+This key is not known by any other names.
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+Warning: Permanently added '4.211.250.3' (ED25519) to the list of known hosts.
+Welcome to Ubuntu 24.04.3 LTS (GNU/Linux 6.14.0-1012-azure x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+ System information as of Mon Nov  3 18:36:24 UTC 2025
+
+  System load:  0.32              Processes:             117
+  Usage of /:   8.4% of 28.02GB   Users logged in:       0
+  Memory usage: 70%               IPv4 address for eth0: 10.0.0.6
+  Swap usage:   0%
+
+Expanded Security Maintenance for Applications is not enabled.
+
+36 updates can be applied immediately.
+21 of these updates are standard security updates.
+To see these additional updates run: apt list --upgradable
+
+Enable ESM Apps to receive additional future security updates.
+See https://ubuntu.com/esm or run: sudo pro status
+
+
+
+The programs included with the Ubuntu system are free software;
+the exact distribution terms for each program are described in the
+individual files in /usr/share/doc/*/copyright.
+
+Ubuntu comes with ABSOLUTELY NO WARRANTY, to the extent permitted by
+applicable law.
+
+To run a command as administrator (user "root"), use "sudo <command>".
+See "man sudo_root" for details.
+
+amir@azurePUTAIN:~$ mysql
+ERROR 1045 (28000): Access denied for user 'amir'@'localhost' (using password: NO)
+amir@azurePUTAIN:~$ sudo mysql
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 9
+Server version: 8.0.43-0ubuntu0.24.04.2 (Ubuntu)
+
+Copyright (c) 2000, 2025, Oracle and/or its affiliates.
+
+Oracle is a registered trademark of Oracle Corporation and/or its
+affiliates. Other names may be trademarks of their respective
+owners.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+mysql> show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| mysql              |
+| performance_schema |
+| sys                |
++--------------------+
+4 rows in set (0.01 sec)
+
+mysql> 
+
+```
+
 
 # III - Gestion des secrets
 
