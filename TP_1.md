@@ -514,3 +514,79 @@ amir@azure2:~$ curl -s http://4.211.168.87:8000/messages | jq
 ]
 amir@azure2:~$ 
 ```
+
+
+# BONUS 1: and thus bash said 'ez VM'
+
+J'ai mis le script dans un fichier, deploy.sh, que je remet la:
+
+
+# BONUSS 2: Service hardening
+
+```
+amir@azure1:~$ sudo systemd-analyze security webapp.service | head -10
+  NAME                                                        DESCRIPTION                                                             EXPOSURE
+✗ RemoveIPC=                                                  Service user may leave SysV IPC objects around                               0.1
+✗ RootDirectory=/RootImage=                                   Service runs within the host's root directory                                0.1
+✓ User=/DynamicUser=                                          Service runs under a static non-root user identity                      
+✗ CapabilityBoundingSet=~CAP_SYS_TIME                         Service processes may change the system clock                                0.2
+✗ NoNewPrivileges=                                            Service processes may acquire new privileges                                 0.2
+✓ AmbientCapabilities=                                        Service process does not receive ambient capabilities                   
+✗ PrivateDevices=                                             Service potentially has access to hardware devices                           0.2
+✗ ProtectClock=                                               Service may write to the hardware clock or system clock                      0.2
+✗ CapabilityBoundingSet=~CAP_SYS_PACCT                        Service may use acct()                                                       0.1
+```
+
+Bon, la liste est longue, mais la la, y'en a un qui tappe dans l'oeil quand même, "NoNewPrivileges" ?
+
+```
+amir@azure1:~$ sudo systemd-analyze security webapp.service | grep "privilege" | head -1
+✗ NoNewPrivileges=                                            Service processes may acquire new privileges                                 0.2
+```
+
+Pas mal non ? 
+
+> *"The property NoNewPrivileges is a systemd unit setting used for sandboxing. It is available since systemd 187. Purpose: prevent processes from gaining new privileges*"
+(https://linux-audit.com/systemd/settings/units/nonewprivileges/)
+
+Stylé, bah je veux ! J't'épargne le reste de mes recherches, j'ai piqué sur ca quand même:
+
+```
+amir@azure1:~$ sudo systemd-analyze security webapp.service | grep "Protect"
+✗ ProtectClock=                                               Service may write to the hardware clock or system clock                      0.2
+✗ ProtectKernelLogs=                                          Service may read from or write to the kernel log ring buffer                 0.2
+✗ ProtectControlGroups=                                       Service may modify the control group file system                             0.2
+✗ ProtectKernelModules=                                       Service may load or read kernel modules                                      0.2
+✗ ProtectHostname=                                            Service may change system host/domainname                                    0.1
+✗ ProtectKernelTunables=                                      Service may alter kernel tunables                                            0.2
+✗ ProtectSystem=                                              Service has full access to the OS file hierarchy                             0.2
+✗ ProtectProc=                                                Service has full access to process tree (/proc hidepid=)                     0.2
+✗ ProtectHome=                                                Service has full access to home directories                                  0.2
+```
+
+T'as vu, je grep protect, trop mimi...
+
+Aller paf, on rajoute tout ça à la conf ! :
+
+```
+amir@azure1:~$ cat /etc/systemd/system/webapp.service 
+[Unit]
+Description=Super Webapp MEOW
+
+[Service]
+User=webapp
+WorkingDirectory=/opt/meow/app
+ExecStartPre=/usr/local/bin/get_secrets.sh
+ExecStart=/opt/meow/app/venv/bin/python3 app.py
+ProtectClock=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectKernelModules=yes
+ProtectHostname=yes
+ProtectKernelTunables=yes
+ProtectSystem=strict
+ProtectHome=yes
+
+[Install]
+WantedBy=multi-user.target
+```
