@@ -519,7 +519,38 @@ amir@azure2:~$
 # BONUS 1: and thus bash said 'ez VM'
 
 J'ai mis le script dans un fichier, deploy.sh, que je remet la:
+```
+    #!/bin/bash
 
+    read -p "Nom du Resource Group : " resourceGroup
+    read -p "Nom de l'utilisateur pour !!TOUTES!! les machines" username
+    read -p "Combien de VMs créer" vmNumber
+    read -p "Voulez vous nommez vos VMs? y/n" vmBool 
+
+
+    echo $resourceGroup
+
+    i=1
+    vmNAME="placeholder"
+
+    while [ $i -le $vmNumber ]; do
+        if [[ $vmBool == "n" || $vmBool == "N" ]]; then
+            vmNAME="VM-$RANDOM-$RANDOM"
+        else
+            read -p "Veuillez choisir le nom de votre VM" vmNAME
+        fi
+        
+        if [ $i -eq 1 ]; then
+            ip_param="--public-ip-sku Standard"
+        else
+            ip_param="--public-ip-address """
+        fi
+
+        az vm create --resource-group $resourceGroup --name $vmNAME --admin-username $username --size Standard_B1s --image Ubuntu2404 --ssh-key-value ~/.ssh/cloud_tp.pub $ip_param
+
+        ((i++))
+    done
+```
 
 # BONUSS 2: Service hardening
 
@@ -586,7 +617,23 @@ ProtectHostname=yes
 ProtectKernelTunables=yes
 ProtectSystem=strict
 ProtectHome=yes
+ReadWritePaths=/opt/meow/app
 
 [Install]
 WantedBy=multi-user.target
 ```
+
+> *(On rajoute ReadWritePaths pour pouvoir écrire dans les fichiers du dossier, ca va avec ProtectSystem)*
+
+**SOURCES:**
+ProtectSystem: https://linux-audit.com/systemd/settings/units/protectsystem/
+ProtectClock: https://linux-audit.com/systemd/settings/units/protectclock/
+ProtectKernelLogs: https://linux-audit.com/systemd/settings/units/protectkernellogs/
+ProtectControlGroups: https://linux-audit.com/systemd/settings/units/protectcontrolgroups/
+ProtectKernelModules: https://linux-audit.com/systemd/settings/units/protectkernelmodules/
+ProtectHostname: https://linux-audit.com/systemd/settings/units/protecthostname/
+ProtectKernelTunables: https://linux-audit.com/systemd/settings/units/protectkerneltunables/
+ProtectHome: https://linux-audit.com/systemd/settings/units/protecthome/
+
+
+# BONUS 4 : Reverse Proxy HTTPS
