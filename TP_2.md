@@ -32,7 +32,7 @@ vm create --name azurePUTAIN --resource-group SuperVMGroup --size Standard_B1s -
   "fqdns": "",
   "id": "",
   "location": "francecentral",
-  "macAddress": "7C-ED-8D-84-34-73",
+  "macAddress": "X",
   "powerState": "VM running",
   "privateIpAddress": "10.0.0.6",
   "publicIpAddress": "nonc",
@@ -83,8 +83,8 @@ write_files:
     defer: true
     content: |
       CREATE DATABASE meow_database;
-      CREATE USER 'meow'@'%' IDENTIFIED BY 'meow';
-      ALTER USER 'meow' IDENTIFIED BY 'meow';
+      CREATE USER 'meow'@'%' IDENTIFIED BY '(je te dis pas, stop searching plz)';
+      ALTER USER 'meow' IDENTIFIED BY '(not giving u my password)';
       GRANT ALL ON meow_database.* TO 'meow'@'%';
       FLUSH PRIVILEGES;
 
